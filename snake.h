@@ -26,7 +26,11 @@
   #define SCREEN_HEIGHT 64
 #endif
 
-// input
+// pre-calculate the grid cell pixel width/height
+#define CELL_XSIZE SCREEN_WIDTH / GRID_WIDTH
+#define CELL_YSIZE SCREEN_HEIGHT / GRID_HEIGHT
+
+// Input (like DDR!)
 #define INPUT_LEFT 0
 #define INPUT_DOWN 1
 #define INPUT_UP 6
@@ -66,8 +70,7 @@ public:
   std::vector<Vec2> body;
 
   // the direction the snake will go in
-  // 0 = left, 1 = down, 2 = up, 3 = right (like DDR!)
-  int dir = 3;
+  int dir = INPUT_LEFT;
 
   // spawn the snake
   void Spawn();

@@ -136,7 +136,7 @@ int snakeMovementInput()
 void gameStep()
 {
 	snake.Move();
-  snake.InteractWithFood(food);
+  snake.DetectFood(food);
 
 	// draw all
 	display.clearDisplay();

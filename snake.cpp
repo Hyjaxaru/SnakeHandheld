@@ -33,18 +33,13 @@ void Snake::Spawn()
   body.push_back({SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2});
 }
 
-void Snake::InteractWithFood(Food &food)
+void Snake::DetectFood(Food &food)
 {
-  // calculate the minimum distance for detection
-  int cellSize = SCREEN_WIDTH / GRID_WIDTH;
-
-  // calculate the distance between the food and the snake
+  // decide if the snake has touched a food
   if (body[0] == food.pos)
   {
     // make snake bigger
     body.push_back(body.back());
-
-    // spawn new food
     food.Spawn();
   }
 }
@@ -53,9 +48,6 @@ void Snake::Move()
 {
   // move the body of the snake
   int size = body.size();
-  // for (int i = size; i > 0; i--) {
-  //   body[i] = body[i-1];
-  // }
   for (int i = 1; i < size; i++)
   {
     int part = size - i;
@@ -64,15 +56,18 @@ void Snake::Move()
 
   // move the head of the snake
   if (dir == INPUT_LEFT)
-    body[0].x -= SCREEN_WIDTH / GRID_WIDTH;
+    body[0].x -= CELL_XSIZE;
   else if (dir == INPUT_DOWN)
-    body[0].y += SCREEN_HEIGHT / GRID_HEIGHT;
+    body[0].y += CELL_YSIZE;
   else if (dir == INPUT_UP)
-    body[0].y -= SCREEN_HEIGHT / GRID_HEIGHT;
+    body[0].y -= CELL_YSIZE;
   else if (dir == INPUT_RIGHT)
-    body[0].x += SCREEN_WIDTH / GRID_WIDTH;
+    body[0].x += CELL_XSIZE;
 
-  // wrap body around
+  // wrap movement around the screen
+  if (body[0].x < 0)
+    body[0].x = SCREEN_WIDTH;
+
 }
 
 void Snake::Draw(Adafruit_SSD1306& display)
