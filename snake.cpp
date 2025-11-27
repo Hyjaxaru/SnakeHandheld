@@ -33,7 +33,7 @@ void Snake::Spawn()
   body.push_back({SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2});
 }
 
-void Snake::DetectFood(Food &food)
+void Snake::DetectFood(Food &food, int& score)
 {
   // decide if the snake has touched a food
   if (body[0] == food.pos)
@@ -41,6 +41,8 @@ void Snake::DetectFood(Food &food)
     // make snake bigger
     body.push_back(body.back());
     food.Spawn();
+
+    score++;
   }
 }
 
@@ -67,6 +69,12 @@ void Snake::Move()
   // wrap movement around the screen
   if (body[0].x < 0)
     body[0].x = SCREEN_WIDTH;
+  else if (body[0].x > SCREEN_WIDTH)
+    body[0].x = 0;
+  else if (body[0].y < 0)
+    body[0].y = SCREEN_HEIGHT;
+  else if (body[0].y > SCREEN_HEIGHT)
+    body[0].y = 0;
 
 }
 

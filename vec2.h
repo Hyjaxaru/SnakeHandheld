@@ -20,8 +20,14 @@ public:
   Vec2(): x(0), y(0) {}
   Vec2(float x, float y): x(x), y(y) {}
 
-  float magnitude() const {
-    return std::sqrt(std::pow(x, 2) * std::pow(y, 2));
+  float magnitude() const
+  {
+    return std::sqrt(std::pow(x, 2) + std::pow(y, 2));
+  }
+
+  static float magnitude(Vec2& v)
+  {
+    return v.magnitude();
   }
 };
 

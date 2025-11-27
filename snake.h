@@ -12,8 +12,10 @@
 #define SNAKE_H
 
 #include <vector>
+
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <TM1638plus.h>
 
 #include "vec2.h"
 
@@ -76,7 +78,7 @@ public:
   void Spawn();
 
   // detect if the snake has collided with food
-  void InteractWithFood(Food& food);
+  void DetectFood(Food& food, int& score);
 
   // move the snake
   void Move();
