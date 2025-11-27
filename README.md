@@ -38,7 +38,7 @@ An implementation of snake designed for the Wemos D1 R2
 | 3.3v  | +      |
 | D6    | -      |
 
-### Case
+## Case
 
 While some parts were designed to hold the device together, the magority of the structure is ductape.
 
