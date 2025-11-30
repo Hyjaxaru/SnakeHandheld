@@ -12,6 +12,11 @@
 
 // --- Food --- //
 
+Food::Food()
+{
+  Spawn();
+}
+
 void Food::Spawn()
 {
   int randomX = std::rand() % SCREEN_WIDTH;
@@ -28,6 +33,16 @@ void Food::Draw(Adafruit_SSD1306& display)
 
 // --- Snake --- //
 
+Snake::Snake()
+{
+  Spawn();
+}
+
+Vec2& Snake::Head()
+{
+  return body[0];
+}
+
 void Snake::Spawn()
 {
   body.push_back({SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2});
@@ -36,7 +51,7 @@ void Snake::Spawn()
 void Snake::DetectFood(Food &food, int& score)
 {
   // decide if the snake has touched a food
-  if (body[0] == food.pos)
+  if (Head() == food.pos)
   {
     // make snake bigger
     body.push_back(body.back());
@@ -57,25 +72,43 @@ void Snake::Move()
   }
 
   // move the head of the snake
+  Vec2& head = Head();
   if (dir == INPUT_LEFT)
-    body[0].x -= CELL_XSIZE;
+    head.x -= CELL_XSIZE;
   else if (dir == INPUT_DOWN)
-    body[0].y += CELL_YSIZE;
+    head.y += CELL_YSIZE;
   else if (dir == INPUT_UP)
-    body[0].y -= CELL_YSIZE;
+    head.y -= CELL_YSIZE;
   else if (dir == INPUT_RIGHT)
-    body[0].x += CELL_XSIZE;
+    head.x += CELL_XSIZE;
 
   // wrap movement around the screen
-  if (body[0].x < 0)
-    body[0].x = SCREEN_WIDTH;
-  else if (body[0].x > SCREEN_WIDTH)
-    body[0].x = 0;
-  else if (body[0].y < 0)
-    body[0].y = SCREEN_HEIGHT;
-  else if (body[0].y > SCREEN_HEIGHT)
-    body[0].y = 0;
+  if (head.x < 0)
+    head.x = SCREEN_WIDTH;
+  else if (head.x > SCREEN_WIDTH)
+    head.x = 0;
+  else if (head.y < 0)
+    head.y = SCREEN_HEIGHT;
+  else if (head.y > SCREEN_HEIGHT)
+    head.y = 0;
 
+}
+
+bool Snake::DetectSelf()
+{
+  Vec2 head = Head();
+
+  // loop for every body part
+  int size = body.size();
+  for (int i = 1; i < size; i++)
+  {
+    // if the head is inside the body, then we die!
+    if (body[i] == head)
+      return true;
+  }
+
+  // the snake is not inside itself
+  return false;
 }
 
 void Snake::Draw(Adafruit_SSD1306& display)

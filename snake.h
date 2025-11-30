@@ -4,7 +4,7 @@
 // A really bad implementation of snake!
 // Do not ever use this as an example of best practice <3
 //
-// Inspired by the work of Luke Garrigan
+// Initially inspired by the work of Luke Garrigan, but most of this is my own work
 // https://dev.to/lukegarrigan/how-to-code-snake-1jeb
 //
 
@@ -44,9 +44,8 @@
 class Food
 {
 public:
-  Food() {
-    Spawn();
-  }
+  Food();
+  ~Food() {}
 
   // the position of the food
   Vec2 pos;
@@ -64,9 +63,8 @@ public:
 class Snake
 {
 public:
-  Snake() {
-    Spawn();
-  }
+  Snake();
+  ~Snake() {}
 
   // the body of the snake
   std::vector<Vec2> body;
@@ -74,11 +72,17 @@ public:
   // the direction the snake will go in
   int dir = INPUT_LEFT;
 
+  // returns a pointer to the head of the snake
+  Vec2& Head();
+
   // spawn the snake
   void Spawn();
 
   // detect if the snake has collided with food
   void DetectFood(Food& food, int& score);
+
+  // detect if the snake collides with itself. If it does, end the game
+  bool DetectSelf();
 
   // move the snake
   void Move();

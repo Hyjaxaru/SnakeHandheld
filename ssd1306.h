@@ -10,6 +10,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
+// These defines were taken from one of the worksheets
 #define OLED_RESET -1
 #define OLED_SCREEN_I2C_ADDRESS 0x3C
 #define SCREEN_WIDTH 128             // OLED display width, in pixels

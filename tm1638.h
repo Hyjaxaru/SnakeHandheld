@@ -9,6 +9,7 @@
 
 #include <TM1638plus.h>
 
+// These defines were taken from one of the worksheets
 #define STROBE_TM D5    // strobe = GPIO connected to strobe line of module
 #define CLOCK_TM D4     // clock = GPIO connected to clock line of module
 #define DIO_TM D3       // data = GPIO connected to data line of module

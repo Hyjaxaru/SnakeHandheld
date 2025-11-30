@@ -24,11 +24,6 @@ public:
   {
     return std::sqrt(std::pow(x, 2) + std::pow(y, 2));
   }
-
-  static float magnitude(Vec2& v)
-  {
-    return v.magnitude();
-  }
 };
 
 inline bool operator == (const Vec2& lhs, const Vec2& rhs)
