@@ -1,10 +1,10 @@
 //
 // Shake.cpp
-//
+// 
 // A really bad implementation of snake!
 // Do not ever use this as an example of best practice <3
 //
-// Inspired by the work of Luke Garrigan
+// Initially inspired by the work of Luke Garrigan, but this is my version
 // https://dev.to/lukegarrigan/how-to-code-snake-1jeb
 //
 

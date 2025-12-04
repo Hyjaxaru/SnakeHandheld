@@ -1,0 +1,563 @@
+----------------------------------------------------------------------------------------------------
+SnakeHandheld.ino
+----------------------------------------------------------------------------------------------------
+
+//
+// SnakeHandheld.ino
+//
+// It's the main file, we all know this
+//
+
+#include <Streaming.h>
+
+// --- Import & Define --- //
+
+// expansion board (tm1638)
+#include "tm1638.h"
+TM1638plus tm = TM1638Utility::Init();
+
+// OLED display (ssd1306)
+#include "ssd1306.h"
+Adafruit_SSD1306 display = SSD1306Utility::Init();
+
+// Buzzer
+#define BUZZER_PIN D6
+
+// snake	
+#include "snake.h"
+Snake snake = Snake();
+Food food = Food();
+
+// --- Globals --- //
+
+// frame rate :)
+#define FRAME_DELAY 500
+
+// SFX length and freq
+#define SFX_STEP_FREQ 1000
+#define SFX_STEP_DUR 5
+#define SFX_FOOD_FREQ 2000
+#define SFX_FOOD_DUR 5
+
+// Input
+#define INPUT_SHOW_CONTROLLS 5
+#define INPUT_RESET_GAME 4
+
+
+// the game score
+int score;
+int scoreLastFrame;
+
+// --- Functions --- //
+
+// the following line is taken from this website:
+// https://www.instructables.com/two-ways-to-reset-arduino-in-software/
+void(* resetFunc) (void) = 0;
+
+bool isButtonPressed(int buttonIndex)
+{
+  return TM1638Utility::IsButtonPressed(tm, buttonIndex);
+}
+
+int snakeMovementInput()
+{
+  if (isButtonPressed(INPUT_LEFT))
+    return INPUT_LEFT;
+  else if (isButtonPressed(INPUT_DOWN))
+    return INPUT_DOWN;
+  else if (isButtonPressed(INPUT_UP))
+    return INPUT_UP;
+  else if (isButtonPressed(INPUT_RIGHT))
+    return INPUT_RIGHT;
+  else
+    return -1;
+}
+
+void drawControls()
+{
+  // left
+  Vec2 head = snake.Head();
+  display.setCursor(head.x - 6, head.y - 2);
+  display << INPUT_LEFT+1 << endl; // +1 because we start at 0 internally, but the markings on the board start at 1
+
+  // right
+  display.setCursor(head.x + 6, head.y - 2);
+  display << INPUT_RIGHT+1 << endl;
+
+  // up
+  display.setCursor(head.x, head.y - 8);
+  display << INPUT_UP+1 << endl;
+
+  // down
+  display.setCursor(head.x, head.y + 6);
+  display << INPUT_DOWN+1 << endl;
+}
+
+void resetWithMessage(char* message)
+{
+  tm.displayText(message);
+  resetFunc();
+}
+
+// --- MAIN --- //
+
+void setup()
+{
+  // set up components
+  TM1638Utility::Setup(tm);
+  SSD1306Utility::Setup(display);
+
+  food.Spawn();
+}
+
+void loop()
+{
+  // input
+  int snakeInput = snakeMovementInput();
+  if (snakeInput != -1)
+    snake.dir = snakeInput;
+
+  // move the snake
+  snake.Move();
+  snake.DetectFood(food, score);
+
+  // show the score on the 7seg anBuzz
+  tm.displayIntNum(score, false, TMAlignTextRight);
+  tm.setLEDs(score);
+
+  display.clearDisplay();
+
+  // draw the game on the OLED
+  snake.Draw(display);
+  food.Draw(display);
+  
+  // show controlls if button is pressed
+  if (isButtonPressed(INPUT_SHOW_CONTROLLS))
+    drawControls();
+
+  display.display();
+
+  // reset the game if the player presses restart
+  if (isButtonPressed(INPUT_RESET_GAME))
+    resetWithMessage("RESET");
+
+  // play a tone to show movement
+  tone(BUZZER_PIN, SFX_STEP_FREQ, SFX_STEP_DUR);
+
+  // if the score has increased, play a tone
+  if (scoreLastFrame != score)
+  {
+    tone(BUZZER_PIN, SFX_FOOD_FREQ, SFX_FOOD_DUR);
+  }
+  else
+  {
+    // only preform the death check if we havent just picked up food...
+    if (snake.DetectSelf())
+      resetWithMessage("YOU DIED");
+  }
+  scoreLastFrame = score;
+
+  // delay
+  delay(FRAME_DELAY);
+}
+
+----------------------------------------------------------------------------------------------------
+snake.h
+----------------------------------------------------------------------------------------------------
+
+//
+// Shake.h
+// 
+// A really bad implementation of snake!
+// Do not ever use this as an example of best practice <3
+//
+// Initially inspired by the work of Luke Garrigan, but this is my version
+// https://dev.to/lukegarrigan/how-to-code-snake-1jeb
+//
+
+#ifndef SNAKE_H
+#define SNAKE_H
+
+#include <vector>
+
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <TM1638plus.h>
+
+#include "vec2.h"
+
+#define GRID_WIDTH 32
+#define GRID_HEIGHT 16
+
+// if we cant find the screen, define the screen size ourselfs
+#ifndef SSD1306_H
+  #define SCREEN_WIDTH 128
+  #define SCREEN_HEIGHT 64
+#endif
+
+// pre-calculate the grid cell pixel width/height
+#define CELL_XSIZE SCREEN_WIDTH / GRID_WIDTH
+#define CELL_YSIZE SCREEN_HEIGHT / GRID_HEIGHT
+
+// Input (like DDR!)
+#define INPUT_LEFT 0
+#define INPUT_DOWN 1
+#define INPUT_UP 6
+#define INPUT_RIGHT 7
+
+
+// --- Food --- //
+
+class Food
+{
+public:
+  Food();
+  ~Food() {}
+
+  // the position of the food
+  Vec2 pos;
+
+  // spawn the food in a location
+  void Spawn();
+
+  // main draw call for the food
+  void Draw(Adafruit_SSD1306& display);
+};
+
+
+// --- Snake --- //
+
+class Snake
+{
+public:
+  Snake();
+  ~Snake() {}
+
+  // the body of the snake
+  std::vector<Vec2> body;
+
+  // the direction the snake will go in
+  int dir = INPUT_LEFT;
+
+  // returns a pointer to the head of the snake
+  Vec2& Head();
+
+  // spawn the snake
+  void Spawn();
+
+  // detect if the snake has collided with food
+  void DetectFood(Food& food, int& score);
+
+  // detect if the snake collides with itself. If it does, end the game
+  bool DetectSelf();
+
+  // move the snake
+  void Move();
+
+  // draw the snake
+  void Draw(Adafruit_SSD1306& display);
+};
+
+#endif // SNAKE_H
+
+----------------------------------------------------------------------------------------------------
+snake.cpp
+----------------------------------------------------------------------------------------------------
+
+//
+// Shake.cpp
+// 
+// A really bad implementation of snake!
+// Do not ever use this as an example of best practice <3
+//
+// Initially inspired by the work of Luke Garrigan, but this is my version
+// https://dev.to/lukegarrigan/how-to-code-snake-1jeb
+//
+
+#include "snake.h"
+
+// --- Food --- //
+
+Food::Food()
+{
+  Spawn();
+}
+
+void Food::Spawn()
+{
+  int randomX = std::rand() % SCREEN_WIDTH;
+  int randomY = std::rand() % SCREEN_HEIGHT;
+  pos.x = randomX - randomX % (SCREEN_WIDTH / GRID_WIDTH);
+  pos.y = randomY - randomY % (SCREEN_HEIGHT / GRID_HEIGHT);
+}
+
+void Food::Draw(Adafruit_SSD1306& display)
+{
+  display.fillRect(pos.x, pos.y, SCREEN_WIDTH / GRID_WIDTH, SCREEN_HEIGHT / GRID_HEIGHT, WHITE);
+}
+
+
+// --- Snake --- //
+
+Snake::Snake()
+{
+  Spawn();
+}
+
+Vec2& Snake::Head()
+{
+  return body[0];
+}
+
+void Snake::Spawn()
+{
+  body.push_back({SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2});
+}
+
+void Snake::DetectFood(Food &food, int& score)
+{
+  // decide if the snake has touched a food
+  if (Head() == food.pos)
+  {
+    // make snake bigger
+    body.push_back(body.back());
+    food.Spawn();
+
+    score++;
+  }
+}
+
+void Snake::Move()
+{
+  // move the body of the snake
+  int size = body.size();
+  for (int i = 1; i < size; i++)
+  {
+    int part = size - i;
+    body[part] = body[part - 1];
+  }
+
+  // move the head of the snake
+  Vec2& head = Head();
+  if (dir == INPUT_LEFT)
+    head.x -= CELL_XSIZE;
+  else if (dir == INPUT_DOWN)
+    head.y += CELL_YSIZE;
+  else if (dir == INPUT_UP)
+    head.y -= CELL_YSIZE;
+  else if (dir == INPUT_RIGHT)
+    head.x += CELL_XSIZE;
+
+  // wrap movement around the screen
+  if (head.x < 0)
+    head.x = SCREEN_WIDTH;
+  else if (head.x > SCREEN_WIDTH)
+    head.x = 0;
+  else if (head.y < 0)
+    head.y = SCREEN_HEIGHT;
+  else if (head.y > SCREEN_HEIGHT)
+    head.y = 0;
+
+}
+
+bool Snake::DetectSelf()
+{
+  Vec2 head = Head();
+
+  // loop for every body part
+  int size = body.size();
+  for (int i = 1; i < size; i++)
+  {
+    // if the head is inside the body, then we die!
+    if (body[i] == head)
+      return true;
+  }
+
+  // the snake is not inside itself
+  return false;
+}
+
+void Snake::Draw(Adafruit_SSD1306& display)
+{
+  for (int i = 0; i < body.size(); i++)
+  {
+    display.drawRect(body[i].x, body[i].y, SCREEN_WIDTH / GRID_WIDTH, SCREEN_HEIGHT / GRID_HEIGHT, WHITE);
+  }
+}
+
+----------------------------------------------------------------------------------------------------
+vec2.h
+----------------------------------------------------------------------------------------------------
+
+//
+// vec2.h
+//
+// 2D Vectors for positions!
+//
+// Inspired by the vec3 class in the famous book "Raytracing in One Weekend"
+// https://raytracing.github.io/books/RayTracingInOneWeekend.html#thevec3class
+//
+
+#ifndef VEC2_H
+#define VEC2_H
+
+#include <cmath>
+
+class Vec2
+{
+public:
+  float x;
+  float y;
+
+  Vec2(): x(0), y(0) {}
+  Vec2(float x, float y): x(x), y(y) {}
+
+  float magnitude() const
+  {
+    return std::sqrt(std::pow(x, 2) + std::pow(y, 2));
+  }
+};
+
+inline bool operator == (const Vec2& lhs, const Vec2& rhs)
+{
+  return lhs.x == rhs.x && lhs.y == rhs.y;
+}
+
+inline Vec2 operator + (const Vec2& lhs, const Vec2& rhs)
+{
+  return Vec2(lhs.x + rhs.y, lhs.y + rhs.y);
+}
+
+----------------------------------------------------------------------------------------------------
+ssd1306.h
+----------------------------------------------------------------------------------------------------
+
+//
+// ssd1306.h
+// 
+// Utilities for working with the SSD1306 OLED display
+//
+
+#ifndef SSD1306_H
+#define SSD1306_H
+
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+// These defines were taken from one of the worksheets
+#define OLED_RESET -1
+#define OLED_SCREEN_I2C_ADDRESS 0x3C
+#define SCREEN_WIDTH 128             // OLED display width, in pixels
+#define SCREEN_HEIGHT 64             // OLED display height, in pixels
+
+class SSD1306Utility
+{
+public:
+  // initialise and return the OLED display
+  static Adafruit_SSD1306 Init();
+
+  // setup the OLED display. Intended to be put in the setup() function
+  static void Setup(Adafruit_SSD1306& display);
+};
+
+#endif // SSD1306_H
+
+----------------------------------------------------------------------------------------------------
+ssd1306.cpp
+----------------------------------------------------------------------------------------------------
+
+//
+// ssd1306.cpp
+// 
+// Utilities for working with the SSD1306 OLED display
+//
+
+#include "ssd1306.h"
+
+#include <Adafruit_SSD1306.h>
+
+Adafruit_SSD1306 SSD1306Utility::Init()
+{
+  Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT);
+  return display;
+}
+
+void SSD1306Utility::Setup(Adafruit_SSD1306& display) {
+  display.begin(SSD1306_SWITCHCAPVCC, OLED_SCREEN_I2C_ADDRESS);
+  display.display();
+  delay(2000);
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.setTextSize(1); // - a line is 21 chars in this size
+  display.setTextColor(WHITE);
+  display.display();
+}
+
+----------------------------------------------------------------------------------------------------
+tm1638.cpp
+----------------------------------------------------------------------------------------------------
+
+//
+// tm1638.h
+// 
+// Utilities for working with the TM1638 expansion board
+//
+
+#ifndef TM1638_H
+#define TM1638_H
+
+#include <TM1638plus.h>
+
+// These defines were taken from one of the worksheets
+#define STROBE_TM D5    // strobe = GPIO connected to strobe line of module
+#define CLOCK_TM D4     // clock = GPIO connected to clock line of module
+#define DIO_TM D3       // data = GPIO connected to data line of module
+#define HIGH_FREQ false // default false, If using a high freq CPU > ~100 MHZ set to true.
+
+class TM1638Utility
+{
+public:
+  // initialise and return the expansion board
+  static TM1638plus Init();
+
+  // setup the expansion board. Intended to be put in the setup() function
+  static void Setup(TM1638plus& tm);
+
+  // check if a specific button has been pressed
+  static bool IsButtonPressed(TM1638plus& tm, int buttonIndex);
+};
+
+#endif // TM1638_H
+
+----------------------------------------------------------------------------------------------------
+tm1638.cpp
+----------------------------------------------------------------------------------------------------
+
+//
+// tm1638.cpp
+// 
+// Utilities for working with the TM1638 expansion board
+//
+
+#include "tm1638.h"
+
+#include <TM1638plus.h>
+
+TM1638plus TM1638Utility::Init() {
+  TM1638plus tm(STROBE_TM, CLOCK_TM , DIO_TM, HIGH_FREQ);
+  return tm;
+}
+
+void TM1638Utility::Setup(TM1638plus& tm) {
+  tm.displayBegin();
+  tm.reset();
+}
+
+bool TM1638Utility::IsButtonPressed(TM1638plus& tm, int buttonIndex) {
+  // get the buttons current state
+  byte buttons = tm.readButtons();
+  // shift the bits over and mask to just the 1s
+  byte isEnabled = buttons >> buttonIndex & 0b000000001;
+  // return true if we find anything other than 0
+  return isEnabled == true;
+}

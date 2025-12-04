@@ -4,7 +4,7 @@
 // A really bad implementation of snake!
 // Do not ever use this as an example of best practice <3
 //
-// Initially inspired by the work of Luke Garrigan, but most of this is my own work
+// Initially inspired by the work of Luke Garrigan, but this is my version
 // https://dev.to/lukegarrigan/how-to-code-snake-1jeb
 //
 
